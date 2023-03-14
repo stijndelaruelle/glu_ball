@@ -1,0 +1,13 @@
+Grote issues:
+- Bij het importeren stond de physics update op “Script”.
+- UI & pickups worden in de player afgehandeld
+- Tag strings gebruiken voor pickups.
+- Hardcoded win condition (12 pickups, niet eens variable)
+
+Kleine issues:
+- Oud input systeem (is dit een probleem?)
+- GetComponent<Rigidbody> in start (kan op zich, maar dan moet er “RequireComponent” bij staan, want er zijn nergens null checks)
+- Public variables (geen [SerializeField])
+- Geen goede naamgeving variables (geen manier om class variables te van locals te onderscheiden)
+- Input opvragen in de fixed update (het werkt, maar moet eig in Update)
+- Zeer statische camera (wat als er een muur id weg zit? (Cinemachine out of scope?)
