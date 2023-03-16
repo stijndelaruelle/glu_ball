@@ -202,6 +202,15 @@ namespace GLUBall
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Zoom"",
+                    ""type"": ""Value"",
+                    ""id"": ""fbaa218c-a792-41b3-8e01-00c4e71713e6"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -232,9 +241,20 @@ namespace GLUBall
                     ""id"": ""38cea433-2e78-4a0f-b336-5cd47e58dfa4"",
                     ""path"": ""<Pointer>/delta"",
                     ""interactions"": """",
-                    ""processors"": """",
+                    ""processors"": ""InvertVector2"",
                     ""groups"": ""Keyboard"",
                     ""action"": ""Rotate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6cfcab85-ee14-4bd4-b5b6-bbf710de6dff"",
+                    ""path"": ""<Mouse>/scroll"",
+                    ""interactions"": """",
+                    ""processors"": ""InvertVector2"",
+                    ""groups"": ""Keyboard"",
+                    ""action"": ""Zoom"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -264,6 +284,7 @@ namespace GLUBall
             m_Camera_StartRotating = m_Camera.FindAction("StartRotating", throwIfNotFound: true);
             m_Camera_StopRotating = m_Camera.FindAction("StopRotating", throwIfNotFound: true);
             m_Camera_Rotate = m_Camera.FindAction("Rotate", throwIfNotFound: true);
+            m_Camera_Zoom = m_Camera.FindAction("Zoom", throwIfNotFound: true);
         }
 
         public void Dispose()
@@ -367,6 +388,7 @@ namespace GLUBall
         private readonly InputAction m_Camera_StartRotating;
         private readonly InputAction m_Camera_StopRotating;
         private readonly InputAction m_Camera_Rotate;
+        private readonly InputAction m_Camera_Zoom;
         public struct CameraActions
         {
             private @InputActions_GLUBall m_Wrapper;
@@ -374,6 +396,7 @@ namespace GLUBall
             public InputAction @StartRotating => m_Wrapper.m_Camera_StartRotating;
             public InputAction @StopRotating => m_Wrapper.m_Camera_StopRotating;
             public InputAction @Rotate => m_Wrapper.m_Camera_Rotate;
+            public InputAction @Zoom => m_Wrapper.m_Camera_Zoom;
             public InputActionMap Get() { return m_Wrapper.m_Camera; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -392,6 +415,9 @@ namespace GLUBall
                     @Rotate.started -= m_Wrapper.m_CameraActionsCallbackInterface.OnRotate;
                     @Rotate.performed -= m_Wrapper.m_CameraActionsCallbackInterface.OnRotate;
                     @Rotate.canceled -= m_Wrapper.m_CameraActionsCallbackInterface.OnRotate;
+                    @Zoom.started -= m_Wrapper.m_CameraActionsCallbackInterface.OnZoom;
+                    @Zoom.performed -= m_Wrapper.m_CameraActionsCallbackInterface.OnZoom;
+                    @Zoom.canceled -= m_Wrapper.m_CameraActionsCallbackInterface.OnZoom;
                 }
                 m_Wrapper.m_CameraActionsCallbackInterface = instance;
                 if (instance != null)
@@ -405,6 +431,9 @@ namespace GLUBall
                     @Rotate.started += instance.OnRotate;
                     @Rotate.performed += instance.OnRotate;
                     @Rotate.canceled += instance.OnRotate;
+                    @Zoom.started += instance.OnZoom;
+                    @Zoom.performed += instance.OnZoom;
+                    @Zoom.canceled += instance.OnZoom;
                 }
             }
         }
@@ -428,6 +457,7 @@ namespace GLUBall
             void OnStartRotating(InputAction.CallbackContext context);
             void OnStopRotating(InputAction.CallbackContext context);
             void OnRotate(InputAction.CallbackContext context);
+            void OnZoom(InputAction.CallbackContext context);
         }
     }
 }

@@ -9,6 +9,13 @@ namespace GLUBall
         [SerializeField]
         private Rigidbody m_RigidBody = null;
 
+        [SerializeField]
+        private SphereCollider m_SphereCollider = null;
+
+        [SerializeField]
+        private Transform m_CameraTransform = null;
+        private Transform m_Transform = null;
+
         [Header("Settings")]
         [SerializeField]
         private float m_Accelleration = 5.0f;
@@ -18,17 +25,25 @@ namespace GLUBall
 
         //State
         private InputActions_GLUBall m_InputActions = null;
-        private Vector2 m_MovementThisFrame = Vector2.zero;
+        private Vector2 m_MovementInputThisFrame = Vector2.zero;
         private bool m_HasJumpedThisFrame = false;
 
         private void Awake()
         {
-            InitializeInput();
+            Initialize();
         }
 
         private void OnDestroy()
         {
             DeinitializeInput();
+        }
+
+        private void Initialize()
+        {
+            //Cache our transform (gameObject.transform = GetComponent<Transform>())
+            m_Transform = gameObject.transform;
+
+            InitializeInput();
         }
 
         private void InitializeInput()
@@ -71,7 +86,7 @@ namespace GLUBall
             if (m_InputActions == null)
                 return;
 
-            m_MovementThisFrame = m_InputActions.Default.Movement.ReadValue<Vector2>();
+            m_MovementInputThisFrame = m_InputActions.Default.Movement.ReadValue<Vector2>();
         }
 
         private void HandleMovement()
@@ -80,15 +95,31 @@ namespace GLUBall
                 return;
 
             //Calculate the force vector
-            Vector3 forceVector = Vector3.zero;
-            forceVector.x = m_MovementThisFrame.x * m_Accelleration * Time.fixedDeltaTime;
-            forceVector.z = m_MovementThisFrame.y * m_Accelleration * Time.fixedDeltaTime;
+            Vector3 forceDirection = new Vector3(m_MovementInputThisFrame.x, 0.0f, m_MovementInputThisFrame.y);
+
+            //Move in the direction the camera is pointing in
+            if (m_CameraTransform != null)
+            {
+                //Forward
+                Vector3 cameraForward = m_CameraTransform.forward;
+                cameraForward.y = 0;
+
+                //Right
+                Vector3 cameraRight = m_CameraTransform.right;
+                cameraRight.y = 0;
+
+                //Alter force direction
+                forceDirection = ((cameraForward * m_MovementInputThisFrame.y) + (cameraRight * m_MovementInputThisFrame.x)).normalized;
+            }
+
+            //Multiply by the accelleration
+            forceDirection *= m_Accelleration * Time.fixedDeltaTime;
 
             //Actually apply the force
-            m_RigidBody.AddForce(forceVector, ForceMode.Force);
+            m_RigidBody.AddForce(forceDirection, ForceMode.Force);
 
             //Reset
-            m_MovementThisFrame = Vector2.zero;
+            m_MovementInputThisFrame = Vector2.zero;
         }
 
         private void HandleJump()
@@ -96,12 +127,29 @@ namespace GLUBall
             if (m_HasJumpedThisFrame == false)
                 return;
 
-            //Perform the jump
-            if (m_RigidBody != null)
-                m_RigidBody.AddForce(Vector3.up * m_JumpStrength, ForceMode.Impulse);
+            //Check if we are grounded
+            if (IsGrounded())
+            {
+                //Perform the jump
+                if (m_RigidBody != null)
+                    m_RigidBody.AddForce(Vector3.up * m_JumpStrength, ForceMode.Impulse);
+            }
 
             //Reset
             m_HasJumpedThisFrame = false;
+        }
+
+        private bool IsGrounded()
+        {
+            if (m_Transform == null || m_SphereCollider == null)
+                return true;
+
+            //Spherecast instead of raycast (more flexible on slopes)
+            //Not OverlapSphere as that doesn't return the contact points (needed to calculate wether or not the slope is too steep)
+            RaycastHit hitInfo = default;
+            bool hasHit = Physics.SphereCast(m_Transform.position, m_SphereCollider.radius - 0.1f, Vector3.down, out hitInfo, 0.1f);
+
+            return hasHit;
         }
 
         //Input Callbacks

@@ -4,16 +4,15 @@ using UnityEngine.InputSystem;
 
 namespace GLUBall
 {
-    public class OrbitCamera : MonoBehaviour
+    [RequireComponent(typeof(CinemachineFreeLook))]
+    public class OrbitCinemachineCamera : MonoBehaviour, AxisState.IInputAxisProvider
     {
-        [Header("References")]
-        [SerializeField]
-        private CinemachineVirtualCamera m_VirtualCamera = null;
-        private CinemachineOrbitalTransposer m_VirtualCameraOribitalTransposer = null;
-
         [Header("Settings")]
         [SerializeField]
-        private float m_MouseSensitivity = 1.0f;
+        private float m_RotateSensitivity = 1.0f;
+
+        [SerializeField]
+        private float m_ZoomSensitivity = 1.0f;
 
         //State
         private InputActions_GLUBall m_InputActions = null;
@@ -54,38 +53,7 @@ namespace GLUBall
             m_InputActions.Camera.Disable();
         }
 
-        private void Start()
-        {
-            if (m_VirtualCamera != null)
-                m_VirtualCameraOribitalTransposer = m_VirtualCamera.GetCinemachineComponent<CinemachineOrbitalTransposer>();
-        }
-
-        private void Update()
-        {
-            RotateCamera();
-        }
-
         //Rotating
-        private void RotateCamera()
-        {
-            if (m_InputActions == null || m_VirtualCameraOribitalTransposer == null)
-                return;
-
-            if (m_IsRotating == false)
-                return;
-
-            //Get the amount the camera input moved
-            Vector2 delta = m_InputActions.Camera.Rotate.ReadValue<Vector2>();
-
-            //Calculate the new rotation
-            float currentBias = m_VirtualCameraOribitalTransposer.m_Heading.m_Bias; //From -180 to 180
-            float newBias = currentBias + (delta.x * m_MouseSensitivity * Time.deltaTime);
-            newBias = WrapFloat(newBias, -180.0f, 180.0f); //Wrap the number around (between -180 and 180)
-
-            //Set the new rotation
-            m_VirtualCameraOribitalTransposer.m_Heading.m_Bias = newBias;
-        }
-
         private void StartRotating()
         {
             if (m_IsRotating == true)
@@ -103,11 +71,34 @@ namespace GLUBall
             m_IsRotating = false;
         }
 
-        //Utilities
-        private float WrapFloat(float f, float min, float max)
+        public float GetAxisValue(int axis)
         {
-            //https://stackoverflow.com/questions/14415753/wrap-value-into-range-min-max-without-division
-            return (((f - min) % (max - min)) + (max - min)) % (max - min) + min;
+            //AxisState.IInputAxisProvider override
+            if (enabled == false || m_InputActions == null)
+                return 0.0f;
+
+            //Only rotate when required
+            Vector2 rotateDelta = Vector2.zero;
+            if (m_IsRotating == true)
+            {
+                rotateDelta = m_InputActions.Camera.Rotate.ReadValue<Vector2>();
+                rotateDelta *= m_RotateSensitivity;
+            }
+
+            //Always allowed to zoom
+            float zoomDelta = m_InputActions.Camera.Zoom.ReadValue<Vector2>().y; //No idea why this is required to be a Vector2
+            zoomDelta = Mathf.Clamp(zoomDelta, -1.0f, 1.0f); //120 and -120 on most systems (except for linux?)
+            zoomDelta *= m_ZoomSensitivity;
+
+            //0 = X, 1 = Y, 2 = Z
+            switch (axis)
+            {
+                case 0: return rotateDelta.x;
+                case 1: return zoomDelta;
+                case 2: return rotateDelta.y;
+            }
+
+            return 0.0f;
         }
 
         //Input callbacks
